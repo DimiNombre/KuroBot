@@ -1,5 +1,6 @@
 const { executionAsyncResource } = require('async_hooks');
 const Discord = require('discord.js');
+const { monitorEventLoopDelay } = require('perf_hooks');
 const ytdl = require('ytdl-core');
 
 const { YTSearcher } = require('ytsearcher');
@@ -16,7 +17,6 @@ const queue = new Map();
 client.on("ready", () => {
     console.log("Currently Online")
     client.user.setActivity('a Dimi gritar', { type: 'WATCHING'}).catch(console.error);
-
 })
 
 client.on("message", async(message) => {
@@ -43,7 +43,13 @@ client.on("message", async(message) => {
         case 'resume':
             resume(serverQueue);
             break;
-    }
+        case 'loop':
+            Loop(args, serverQueue)
+            break;
+        case 'queue':
+            Queue(serverQueue)
+            break;
+        }
 
     async function execute(message, serverQueue){
         let vc = message.member.voice.channel;
@@ -65,7 +71,9 @@ client.on("message", async(message) => {
                     connection: null,
                     songs: [],
                     volume: 10,
-                    playing: true
+                    playing: true,
+                    loopone: false,
+                    loopall: false
                 };
                 queue.set(message.guild.id, queueConstructor);
 
@@ -96,7 +104,15 @@ client.on("message", async(message) => {
         const dispatcher = serverQueue.connection
             .play(ytdl(song.url))
             .on('finish', () =>{
-                serverQueue.songs.shift();
+                if(serverQueue.loopone){  
+                    play(guild, serverQueue.songs[0]);
+                }
+                else if(serverQueue.loopall){
+                    serverQueue.songs.push(serverQueue.songs[0])
+                    serverQueue.songs.shift()
+                }else{
+                    serverQueue.songs.shift()
+                }
                 play(guild, serverQueue.songs[0]);
             })
             serverQueue.txtChannel.send(`Escuchando ${serverQueue.songs[0].url}`)
@@ -133,6 +149,57 @@ client.on("message", async(message) => {
             return message.channel.send("La canción ya está sonando.");
         serverQueue.connection.dispatcher.resume();
         message.channel.send("La canción se ha resumido.");
+    }
+    function Loop(args, serverQueue){
+        if(!serverQueue.connection)
+            return message.channel.send("There is no music currently playing!");
+        if(!message.member.voice.channel)
+            return message.channel.send("You are not in the voice channel!")
+
+        switch(args[0].toLowerCase()){
+           case 'all':
+               serverQueue.loopall = !serverQueue.loopall;
+               serverQueue.loopone = false;
+
+               if(serverQueue.loopall === true)
+                   message.channel.send("Loop all se ha activado.");
+               else
+                    message.channel.send("Loop all se ha desactivado");
+
+               break;
+            case 'one':
+                serverQueue.loopone = !serverQueue.loopone;
+                serverQueue.loopall = false;
+
+                if(serverQueue.loopone === true)
+                    message.channel.send("Loop one se ha activado.");
+                else
+                    message.channel.send("Loop one se ha desactivado.");
+                break;
+            case 'off':
+                    serverQueue.loopall = false;
+                    serverQueue.loopone = false;
+
+                    message.channel.send("Loop se ha desactivado");
+                break;
+            default:
+                message.channel.send("^Por favor especifica que tipo de loop quieres :kissing_smiling_eyes:. .loop <one/all/off>"); 
+        }
+    }
+    function Queue(serverQueue){
+        if(!serverQueue.connection)
+            return message.channel.send("There is no music currently playing!");
+        if(!message.member.voice.channel)
+            return message.channel.send("You are not in the voice channel!")
+
+        let nowPlaying = serverQueue.songs[0];
+        let qMsg =  `Now playing: ${nowPlaying.title}\n--------------------------\n`
+
+        for(var i = 1; i < serverQueue.songs.length; i++){
+            qMsg += `${i}. ${serverQueue.songs[i].title}\n`
+        }
+
+        message.channel.send('```' + qMsg + 'Requested by: ' + message.author.username + '```');
     }
 })
 

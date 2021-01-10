@@ -44,10 +44,10 @@ client.on("message", async(message) => {
             resume(serverQueue);
             break;
         case 'loop':
-            Loop(args, serverQueue)
+            Loop(args, serverQueue);
             break;
         case 'queue':
-            Queue(serverQueue)
+            Queue(serverQueue);
             break;
         }
 
@@ -157,16 +157,15 @@ client.on("message", async(message) => {
             return message.channel.send("No estás en ningún canal de voz ._.")
 
         switch(args[0].toLowerCase()){
-           case 'all':
+            case 'all':
                serverQueue.loopall = !serverQueue.loopall;
                serverQueue.loopone = false;
 
-               if(serverQueue.loopall === true)
+                if(serverQueue.loopall === true)
                    message.channel.send("Loop all se ha activado.");
-               else
+                else
                     message.channel.send("Loop all se ha desactivado.");
-
-               break;
+                break;
             case 'one':
                 serverQueue.loopone = !serverQueue.loopone;
                 serverQueue.loopall = false;

@@ -152,9 +152,9 @@ client.on("message", async(message) => {
     }
     function Loop(args, serverQueue){
         if(!serverQueue.connection)
-            return message.channel.send("There is no music currently playing!");
+            return message.channel.send("No se está reproduciendo música ahora mismo.");
         if(!message.member.voice.channel)
-            return message.channel.send("You are not in the voice channel!")
+            return message.channel.send("No estás en ningún canal de voz ._.")
 
         switch(args[0].toLowerCase()){
            case 'all':
@@ -164,7 +164,7 @@ client.on("message", async(message) => {
                if(serverQueue.loopall === true)
                    message.channel.send("Loop all se ha activado.");
                else
-                    message.channel.send("Loop all se ha desactivado");
+                    message.channel.send("Loop all se ha desactivado.");
 
                break;
             case 'one':
@@ -180,7 +180,7 @@ client.on("message", async(message) => {
                     serverQueue.loopall = false;
                     serverQueue.loopone = false;
 
-                    message.channel.send("Loop se ha desactivado");
+                    message.channel.send("Loop se ha desactivado.");
                 break;
             default:
                 message.channel.send("^Por favor especifica que tipo de loop quieres :kissing_smiling_eyes:. .loop <one/all/off>"); 
@@ -188,18 +188,18 @@ client.on("message", async(message) => {
     }
     function Queue(serverQueue){
         if(!serverQueue.connection)
-            return message.channel.send("There is no music currently playing!");
+            return message.channel.send("No se está reproduciendo música ahora mismo.");
         if(!message.member.voice.channel)
-            return message.channel.send("You are not in the voice channel!")
+            return message.channel.send("No estás en ningún canal de voz ._.")
 
         let nowPlaying = serverQueue.songs[0];
-        let qMsg =  `Now playing: ${nowPlaying.title}\n--------------------------\n`
+        let qMsg =  `Escuchando: ${nowPlaying.title}\n--------------------------\n`
 
         for(var i = 1; i < serverQueue.songs.length; i++){
             qMsg += `${i}. ${serverQueue.songs[i].title}\n`
         }
 
-        message.channel.send('```' + qMsg + 'Requested by: ' + message.author.username + '```');
+        message.channel.send('```' + qMsg + 'Solicitada por: ' + message.author.username + '```');
     }
 })
 

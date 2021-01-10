@@ -15,7 +15,7 @@ const client = new Discord.Client();
 const queue = new Map();
 
 client.on("ready", () => {
-    console.log("Currently Online")
+    console.log("I am online!")
     client.user.setActivity('a Dimi gritar', { type: 'WATCHING'}).catch(console.error);
 })
 
@@ -56,7 +56,7 @@ client.on("message", async(message) => {
         if(!vc){
             return message.channel.send("Por favor, unete a un chat de voz primero.");
         }else{
-            let result = await searcher.search(args.join(" "), { type: "video" })
+            let result = await searcher.search(args.join(" "), { type: "video" }) 
             const songInfo = await ytdl.getInfo(result.first.url)
 
             let song = {
@@ -115,7 +115,7 @@ client.on("message", async(message) => {
                 }
                 play(guild, serverQueue.songs[0]);
             })
-            serverQueue.txtChannel.send(`Escuchando ${serverQueue.songs[0].url}`)
+            serverQueue.txtChannel.send(`Escuchando: ${serverQueue.songs[0].url}`)
     }
     function stop (message, serverQueue){
         if(!message.member.voice.channel)
@@ -157,15 +157,16 @@ client.on("message", async(message) => {
             return message.channel.send("No estás en ningún canal de voz ._.")
 
         switch(args[0].toLowerCase()){
-            case 'all':
+           case 'all':
                serverQueue.loopall = !serverQueue.loopall;
                serverQueue.loopone = false;
 
-                if(serverQueue.loopall === true)
+               if(serverQueue.loopall === true)
                    message.channel.send("Loop all se ha activado.");
-                else
+               else
                     message.channel.send("Loop all se ha desactivado.");
-                break;
+
+               break;
             case 'one':
                 serverQueue.loopone = !serverQueue.loopone;
                 serverQueue.loopall = false;
@@ -182,7 +183,7 @@ client.on("message", async(message) => {
                     message.channel.send("Loop se ha desactivado.");
                 break;
             default:
-                message.channel.send("^Por favor especifica que tipo de loop quieres :kissing_smiling_eyes:. .loop <one/all/off>"); 
+                message.channel.send("Por favor especifica que tipo de loop quieres :kissing_smiling_eyes:. .loop <one/all/off>"); 
         }
     }
     function Queue(serverQueue){
@@ -192,14 +193,14 @@ client.on("message", async(message) => {
             return message.channel.send("No estás en ningún canal de voz ._.")
 
         let nowPlaying = serverQueue.songs[0];
-        let qMsg =  `Escuchando: ${nowPlaying.title}\n--------------------------\n`
+        let qMsg =  `Now playing: ${nowPlaying.title}\n--------------------------\n`
 
         for(var i = 1; i < serverQueue.songs.length; i++){
             qMsg += `${i}. ${serverQueue.songs[i].title}\n`
         }
 
-        message.channel.send('```' + qMsg + 'Solicitada por: ' + message.author.username + '```');
+        message.channel.send('```' + qMsg + 'Requested by: ' + message.author.username + '```');
     }
 })
 
-client.login(process.env.token)
+client.login("process.env.token")

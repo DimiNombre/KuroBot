@@ -154,7 +154,11 @@ client.on("message", async(message) => {
         if(!serverQueue.connection)
             return message.channel.send("No se está reproduciendo música ahora mismo.");
         if(!message.member.voice.channel)
-            return message.channel.send("No estás en ningún canal de voz ._.")
+            return message.channel.send("No estás en ningún canal de voz ._.");
+        if (args.length <= 0)
+            return message.channel.send("")
+        if (!serverQueue || serverQueue.connection)
+            return; 
 
         switch(args[0].toLowerCase()){
            case 'all':

@@ -99,7 +99,7 @@ client.on("message", async(message) => {
                 serverQueue.songs.shift();
                 play(guild, serverQueue.songs[0]);
             })
-            serverQueue.txtChannel.send(`Escuchando :CatRave: ${serverQueue.songs[0].url}`)
+            serverQueue.txtChannel.send(`Escuchando ${serverQueue.songs[0].url}`)
     }
     function stop (message, serverQueue){
         if(!message.member.voice.channel)

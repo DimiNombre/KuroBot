@@ -15,7 +15,7 @@ const client = new Discord.Client();
 const queue = new Map();
 
 client.on("ready", () => {
-    console.log("I am online!")
+    console.log("Currently Online")
     client.user.setActivity('a Dimi gritar', { type: 'WATCHING'}).catch(console.error);
 })
 
@@ -43,9 +43,6 @@ client.on("message", async(message) => {
         case 'resume':
             resume(serverQueue);
             break;
-        case 'loop':
-            Loop(args, serverQueue);
-            break;
         case 'queue':
             Queue(serverQueue);
             break;
@@ -56,7 +53,7 @@ client.on("message", async(message) => {
         if(!vc){
             return message.channel.send("Por favor, unete a un chat de voz primero.");
         }else{
-            let result = await searcher.search(args.join(" "), { type: "video" }) 
+            let result = await searcher.search(args.join(" "), { type: "video" })
             const songInfo = await ytdl.getInfo(result.first.url)
 
             let song = {
@@ -71,9 +68,7 @@ client.on("message", async(message) => {
                     connection: null,
                     songs: [],
                     volume: 10,
-                    playing: true,
-                    loopone: false,
-                    loopall: false
+                    playing: true
                 };
                 queue.set(message.guild.id, queueConstructor);
 
@@ -104,18 +99,10 @@ client.on("message", async(message) => {
         const dispatcher = serverQueue.connection
             .play(ytdl(song.url))
             .on('finish', () =>{
-                if(serverQueue.loopone){  
-                    play(guild, serverQueue.songs[0]);
-                }
-                else if(serverQueue.loopall){
-                    serverQueue.songs.push(serverQueue.songs[0])
-                    serverQueue.songs.shift()
-                }else{
-                    serverQueue.songs.shift()
-                }
+                serverQueue.songs.shift();
                 play(guild, serverQueue.songs[0]);
             })
-            serverQueue.txtChannel.send(`Escuchando: ${serverQueue.songs[0].url}`)
+            serverQueue.txtChannel.send(`Escuchando ${serverQueue.songs[0].url}`)
     }
     function stop (message, serverQueue){
         if(!message.member.voice.channel)
@@ -154,23 +141,18 @@ client.on("message", async(message) => {
         if(!serverQueue.connection)
             return message.channel.send("No se está reproduciendo música ahora mismo.");
         if(!message.member.voice.channel)
-            return message.channel.send("No estás en ningún canal de voz ._.");
-        if (args.length <= 0)
-            return message.channel.send("")
-        if (!serverQueue || serverQueue.connection)
-            return; 
+            return message.channel.send("No estás en ningún canal de voz ._.")
 
         switch(args[0].toLowerCase()){
-           case 'all':
+            case 'all':
                serverQueue.loopall = !serverQueue.loopall;
                serverQueue.loopone = false;
 
-               if(serverQueue.loopall === true)
+                if(serverQueue.loopall === true)
                    message.channel.send("Loop all se ha activado.");
-               else
+                else
                     message.channel.send("Loop all se ha desactivado.");
-
-               break;
+                break;
             case 'one':
                 serverQueue.loopone = !serverQueue.loopone;
                 serverQueue.loopall = false;
@@ -187,7 +169,7 @@ client.on("message", async(message) => {
                     message.channel.send("Loop se ha desactivado.");
                 break;
             default:
-                message.channel.send("Por favor especifica que tipo de loop quieres :kissing_smiling_eyes:. .loop <one/all/off>"); 
+                message.channel.send("^Por favor especifica que tipo de loop quieres :kissing_smiling_eyes:. .loop <one/all/off>"); 
         }
     }
     function Queue(serverQueue){
@@ -197,14 +179,14 @@ client.on("message", async(message) => {
             return message.channel.send("No estás en ningún canal de voz ._.")
 
         let nowPlaying = serverQueue.songs[0];
-        let qMsg =  `Now playing: ${nowPlaying.title}\n--------------------------\n`
+        let qMsg =  `Escuchando: ${nowPlaying.title}\n--------------------------\n`
 
         for(var i = 1; i < serverQueue.songs.length; i++){
             qMsg += `${i}. ${serverQueue.songs[i].title}\n`
         }
 
-        message.channel.send('```' + qMsg + 'Requested by: ' + message.author.username + '```');
+        message.channel.send('```' + qMsg + 'Solicitada por: ' + message.author.username + '```');
     }
 })
 
-client.login("process.env.token")
+client.login(process.env.token)

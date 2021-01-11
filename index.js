@@ -16,7 +16,7 @@ const queue = new Map();
 
 client.on("ready", () => {
     console.log("Currently Online")
-    client.user.setActivity('a Dimi gritar', { type: 'WATCHING'}).catch(console.error);
+    client.user.setActivity('a Dimi gritar', { type: 'LISTENING'}).catch(console.error);
 })
 
 client.on("message", async(message) => {

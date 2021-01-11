@@ -2,10 +2,8 @@ const { executionAsyncResource } = require('async_hooks');
 const Discord = require('discord.js');
 const { monitorEventLoopDelay } = require('perf_hooks');
 const ytdl = require('ytdl-core');
-const fs = require('fs')
 
 const { YTSearcher } = require('ytsearcher');
-const { constants } = require('buffer');
 
 const searcher = new YTSearcher({
     key: process.env.youtube_api,
@@ -13,25 +11,8 @@ const searcher = new YTSearcher({
 });
 
 const client = new Discord.Client();
-client.commands = new Discord.Collection();
-client.aliases = new Discord.Collection();
 
-fs.readdir("./commands/", (e, f) => {
-    if(e) return console.error(e);
-    f.forEach(file => {
-        if (!file.endsWith(".js")) return
-        console.log(`${file} has been loaded`)
-        let cmd = require(`./commands/${file}`);
-        let cmdName = cmd.config.name;
-        client.commands.set(cmdName, cmd)
-        cmd.config.aliases.forEach(alias => {
-            client.aliases.set(alias, cmdName);
-        })
-    })
-})
-
-
-const queue = new Map ();
+const queue = new Map();
 
 client.on("ready", () => {
     console.log("Currently Online")
@@ -46,14 +27,142 @@ client.on("message", async(message) => {
     const args = message.content.slice(prefix.length).trim().split(/ +/g)
     const command = args.shift().toLowerCase();
 
-    const cmd = client.commands.get(command) || client.commands.get(client.aliases.get(command));
+    switch(command){
+        case 'play':
+            execute(message, serverQueue);
+            break;
+        case 'stop':
+            stop(message, serverQueue);
+            break;
+        case 'skip':
+            skip(message, serverQueue);
+            break;
+        case 'pause':
+            pause(serverQueue);
+            break;
+        case 'resume':
+            resume(serverQueue);
+            break;
+        case 'loop':
+            Loop(args, serverQueue);
+            break;
+        case 'queue':
+            Queue(serverQueue);
+            break;
+        }
 
-    if(!cmd) return
+    async function execute(message, serverQueue){
+        let vc = message.member.voice.channel;
+        if(!vc){
+            return message.channel.send("Por favor, unete a un chat de voz primero.");
+        }else{
+            let result = await searcher.search(args.join(" "), { type: "video" })
+            const songInfo = await ytdl.getInfo(result.first.url)
 
-    try {
-        cmd.run(client, message, args, queue, searcher);
-    }catch (err){
-        return console.error(err)
+            let song = {
+                title: songInfo.videoDetails.title,
+                url: songInfo.videoDetails.video_url
+            };
+
+            if(!serverQueue){
+                const queueConstructor = {
+                    txtChannel: message.channel,
+                    vChannel: vc,
+                    connection: null,
+                    songs: [],
+                    volume: 10,
+                    playing: true,
+                };
+                queue.set(message.guild.id, queueConstructor);
+
+                queueConstructor.songs.push(song);
+
+                try{
+                    let connection = await vc.join();
+                    queueConstructor.connection = connection;
+                    message.guild.me.voice.setSelfMute(true);
+                    play(message.guild, queueConstructor.songs[0]);
+                }catch (err){
+                    console.error(err);
+                    queue.delete(message.guild.id);
+                    return message.channel.send(`No me he podido unir al chat de voz :sob: ${err}`)
+                }
+            }else{
+                serverQueue.songs.push(song);
+                return message.channel.send(`Se ha añadido la canción ${song.url}`);
+            }
+        }
+    }
+    function play(guild, song){
+        const serverQueue = queue.get(guild.id);
+        if(!song){
+            serverQueue.vChannel.leave();
+            queue.delete(guild.id);
+            return;
+        }
+        const dispatcher = serverQueue.connection
+            .play(ytdl(song.url))
+            .on('finish', () =>{
+                if(serverQueue.loopone){  
+                    play(guild, serverQueue.songs[0]);
+                }
+                else if(serverQueue.loopall){
+                    serverQueue.songs.push(serverQueue.songs[0])
+                    serverQueue.songs.shift()
+                }else{
+                    serverQueue.songs.shift()
+                }
+                play(guild, serverQueue.songs[0]);
+            })
+            serverQueue.txtChannel.send(`Escuchando ${serverQueue.songs[0].url}`)
+    }
+    function stop (message, serverQueue){
+        if(!message.member.voice.channel)
+            return message.channel.send("Primero necesitas unirte a un chat de voz.")
+        serverQueue.songs = [];
+        serverQueue.connection.dispatcher.end();
+    }
+    function skip (message, serverQueue){
+        if(!message.member.voice.channel)
+            return message.channel.send("Necesitas unirte a un chat de voz primero.");
+        if(!serverQueue)
+            return message.channel.send("No hay nada que skipear ._.");
+        serverQueue.connection.dispatcher.end();
+    }
+    function pause(serverQueue){
+        if(!serverQueue.connection)
+            return message.channel.send("No estás escuchando música.");
+        if(!message.member.voice.channel)
+            return message.channel.send("No estás en un chat de voz.")
+        if(serverQueue.connection.dispatcher.paused)
+            return message.channel.send("La canción ya está pausada.");
+        serverQueue.connection.dispatcher.pause();
+        message.channel.send("La canción se ha pausado.");
+    }
+    function resume(serverQueue){
+        if(!serverQueue.connection)
+            return message.channel.send("No estás escuchando música.");
+        if(!message.member.voice.channel)
+            return message.channel.send("No estás en un chat de voz.")
+        if(serverQueue.connection.dispatcher.resumed)
+            return message.channel.send("La canción ya está sonando.");
+        serverQueue.connection.dispatcher.resume();
+        message.channel.send("La canción se ha resumido.");
+    }
+    function Queue(serverQueue){
+        if(!serverQueue.connection)
+            return message.channel.send("No se está reproduciendo música ahora mismo.");
+        if(!message.member.voice.channel)
+            return message.channel.send("No estás en ningún canal de voz ._.")
+
+        let nowPlaying = serverQueue.songs[0];
+        let qMsg =  `Escuchando: ${nowPlaying.title}\n--------------------------\n`
+
+        for(var i = 1; i < serverQueue.songs.length; i++){
+            qMsg += `${i}. ${serverQueue.songs[i].title}\n`
+        }
+
+        message.channel.send('```' + qMsg + 'Solicitada por: ' + message.author.username + '```');
     }
 })
 
